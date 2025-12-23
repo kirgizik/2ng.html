@@ -65,6 +65,11 @@ max-width:1100px;
 margin:0 auto;
 }
 
+.text-section p .word-wrapper {
+display: inline-block;
+white-space: nowrap;
+}
+
 .text-section p .char {
 display: inline-block;
 opacity: 0;
@@ -216,32 +221,62 @@ drawSnow();
   const originalText = textElement.innerText;
   
   textElement.innerHTML = '';
-  const chars = [];
   
-  for (let i = 0; i < originalText.length; i++) {
-    const char = originalText[i];
-    const span = document.createElement('span');
-    span.className = 'char';
-    
-    if (char === ' ') {
-      span.className += ' space';
-      span.innerHTML = '&nbsp;';
-    } else if (char === '\n') {
-      textElement.appendChild(document.createElement('br'));
-      continue;
-    } else {
-      span.textContent = char;
+  // Разбиваем текст на слова и пробелы
+  const wordsAndSpaces = originalText.split(/(\s+)/);
+  const fragments = [];
+  
+  wordsAndSpaces.forEach(fragment => {
+    if (fragment.trim() === '' && fragment !== '') {
+      // Это пробелы (включая идеографические)
+      for (let i = 0; i < fragment.length; i++) {
+        const span = document.createElement('span');
+        span.className = 'char space';
+        span.innerHTML = fragment[i] === '　' ? '　' : '&nbsp;';
+        textElement.appendChild(span);
+        fragments.push(span);
+      }
+    } else if (fragment.includes('\n')) {
+      // Обрабатываем переносы строк
+      const lines = fragment.split('\n');
+      lines.forEach((line, lineIndex) => {
+        if (lineIndex > 0) {
+          textElement.appendChild(document.createElement('br'));
+        }
+        
+        // Разбиваем линию на символы
+        for (let i = 0; i < line.length; i++) {
+          const span = document.createElement('span');
+          span.className = 'char';
+          span.textContent = line[i];
+          textElement.appendChild(span);
+          fragments.push(span);
+        }
+      });
+    } else if (fragment !== '') {
+      // Это слово - создаем обертку для слова
+      const wordWrapper = document.createElement('span');
+      wordWrapper.className = 'word-wrapper';
+      wordWrapper.style.display = 'inline-block';
+      wordWrapper.style.whiteSpace = 'nowrap';
+      
+      for (let i = 0; i < fragment.length; i++) {
+        const span = document.createElement('span');
+        span.className = 'char';
+        span.textContent = fragment[i];
+        wordWrapper.appendChild(span);
+        fragments.push(span);
+      }
+      
+      textElement.appendChild(wordWrapper);
     }
-    
-    textElement.appendChild(span);
-    chars.push(span);
-  }
+  });
   
   function animateText() {
     const windowHeight = window.innerHeight;
     const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
     
-    chars.forEach((char) => {
+    fragments.forEach((char) => {
       const rect = char.getBoundingClientRect();
       const charTop = rect.top + scrollTop;
       const charCenter = charTop + rect.height / 2;
