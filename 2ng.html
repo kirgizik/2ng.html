@@ -1,0 +1,267 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>Ещё раз с новым годом</title>
+<style>
+* { box-sizing: border-box; margin:0; padding:0; }
+html,body { height:100%; overflow-x:hidden; font-family:'Inter', system-ui, Arial, sans-serif; -webkit-font-smoothing:antialiased; -moz-osx-font-smoothing:grayscale; }  
+body {
+background:
+radial-gradient(1200px 400px at 10% 20%, rgba(255,200,200,0.03), transparent 8%),
+radial-gradient(1000px 300px at 90% 80%, rgba(255,180,180,0.03), transparent 8%),
+linear-gradient(180deg, #4a0a0a 0%, #2b0606 60%, #190202 100%);
+background-blend-mode: overlay;
+}
+
+body::after{
+content:""; position:fixed; inset:0;
+background-image:
+radial-gradient(circle at 10% 10%, rgba(255,255,255,0.02) 0 1px, transparent 1px),
+radial-gradient(circle at 50% 50%, rgba(255,255,255,0.01) 0 1px, transparent 1px);
+opacity:0.6; mix-blend-mode: overlay; pointer-events:none; z-index:0;
+}
+
+canvas { position:fixed; inset:0; width:100%; height:100%; pointer-events:none; z-index:5; }
+
+.page { width:100%; position:relative; z-index:10; }
+
+.start-screen {
+width: calc(100% - 1cm);
+max-width:1200px;
+margin:1rem auto;
+display:flex;
+flex-direction:column;
+align-items:center;
+justify-content:flex-start;
+padding-top:5%;
+text-align:center;
+color:#fff;
+}
+
+.start-screen h1 {
+font-family:'Playfair Display', serif;
+font-weight:900;
+line-height:1.2;
+font-size:6rem;
+margin-bottom:6rem;
+}
+
+.text-section {
+width: calc(100% - 1cm);
+max-width:1200px;
+margin:0 auto; /* убрали отступ сверху */
+color:#fff;
+text-align:center;
+font-family:'Georgia', serif;
+padding-top:0; /* убрали дополнительный отступ */
+}
+
+.text-section p {
+font-size:55px;
+line-height:1.4;
+max-width:1100px;
+margin:0 auto;
+}
+
+.text-section p .char {
+display: inline-block;
+opacity: 0;
+transform: translateY(20px);
+transition: opacity 0.3s ease, transform 0.3s ease;
+}
+
+.text-section p .char.visible {
+opacity: 1;
+transform: translateY(0);
+}
+
+.text-section p .char.space {
+width: 0.3em;
+}
+
+/* Больше пространства между поздравлением и картинкой */
+.text-section img {
+  width: 300px;
+  max-width: 90%;
+  display: block;
+  margin: 8rem auto 0 auto; /* увеличенный верхний отступ */
+  border-radius: 10px;
+}
+
+@media (max-width:1200px){
+.text-section p { font-size:45px; }
+}
+@media (max-width:900px){
+.text-section p { font-size:35px; }
+}
+@media (max-width:700px){
+.start-screen h1 { font-size:5rem; margin-bottom:5rem; }
+.text-section p { font-size:28px; line-height:1.3; }
+}
+</style>
+</head>
+<body>
+<canvas id="snow"></canvas>
+
+<div class="page">
+  <div class="start-screen">
+    <h1>Ещё раз<br>с новым<br>годом!</h1>
+  </div>
+
+  <div class="text-section">
+    <p id="animatedText">
+      Я хз че те ещё пожелать, но короче чтобы все было　 　 　, 　 　 　 и главное побольше 　　 　 　.
+      Может быть даже<br>
+      пожелаю 　 　 　 　　 　 　.
+    </p>
+    <!-- Вставляем картинку -->
+    <img src="https://i.postimg.cc/6QLtHb25/IMG-20251208-074645-646.jpg" alt="">
+    <!-- Текст с ссылкой на Telegram -->
+    <p style="color:#fff; text-align:center; margin-top:1rem; font-size:18px;">
+      Если будут проблемы: 
+      <a href="https://t.me/s_ng_danik" target="_blank" style="color:#00aaff; text-decoration:none; font-weight:bold;">
+        @s_ng_danik
+      </a>
+    </p>
+  </div>
+</div>
+
+<script>
+const canvasSnow = document.getElementById('snow');    
+const ctxSnow = canvasSnow.getContext('2d', { alpha: true });    
+let DPR = Math.max(1, window.devicePixelRatio || 1);    
+let W = window.innerWidth;    
+let H = window.innerHeight;    
+function resizeCanvas() {    
+  DPR = Math.max(1, window.devicePixelRatio || 1);    
+  W = window.innerWidth;    
+  H = window.innerHeight;    
+  canvasSnow.width = Math.floor(W * DPR);    
+  canvasSnow.height = Math.floor(H * DPR);    
+  canvasSnow.style.width = W + 'px';    
+  canvasSnow.style.height = H + 'px';    
+  ctxSnow.setTransform(DPR,0,0,DPR,0,0);    
+}    
+resizeCanvas();    
+window.addEventListener('resize', resizeCanvas);    
+
+const layers = [    
+  { count: 30, sizeRange: [8,18], speedRange: [0.2,0.6], depth: 0.3 },    
+  { count: 40, sizeRange: [12,28], speedRange: [0.4,1.0], depth: 0.6 },    
+  { count: 30, sizeRange: [22,44], speedRange: [0.6,1.6], depth: 1.0 }    
+];    
+let flakes = [];    
+let mouse = { x: W/2, y: H/2 };    
+window.addEventListener('mousemove', (e) => { mouse.x = e.clientX; mouse.y = e.clientY; });    
+window.addEventListener('touchmove', (e) => { if(e.touches && e.touches[0]) { mouse.x = e.touches[0].clientX; mouse.y = e.touches[0].clientY; } }, { passive:true });    
+function rand(min, max){ return Math.random()*(max-min)+min; }    
+function createFlakes(){    
+  flakes = [];    
+  layers.forEach((layer) => {    
+    for(let i=0;i<layer.count;i++){    
+      const size = rand(layer.sizeRange[0], layer.sizeRange[1]);    
+      flakes.push({    
+        x: rand(0, W), y: rand(-H, H), size, baseSize:size,    
+        speed: rand(layer.speedRange[0], layer.speedRange[1]),    
+        angle: rand(0, Math.PI*2), angSpeed: rand(0.001, 0.006),    
+        depth: layer.depth, drift: rand(-0.5,0.5), alpha: rand(0.03, 0.15)    
+      });    
+    }    
+  });    
+}    
+createFlakes();    
+function drawSnow(){    
+  ctxSnow.clearRect(0,0,W,H);    
+  const mx = (mouse.x - W/2) / (W/2);    
+  const my = (mouse.y - H/2) / (H/2);    
+  for (let f of flakes){    
+    const px = mx * 30 * f.depth;    
+    const py = my * 20 * f.depth;    
+    f.angle += f.angSpeed;    
+    f.x += Math.sin(f.angle) * 0.4 + f.drift * 0.2 + px * 0.01;    
+    f.y += f.speed + py*0.02;    
+    if (f.y > H + f.size) { f.y = -f.size - rand(0, H*0.2); f.x = rand(0, W); }    
+    if (f.x > W + f.size) f.x = -f.size;    
+    if (f.x < -f.size) f.x = W + f.size;    
+    const ripple = Math.sin(f.angle*1.5) * (f.depth*0.6);    
+    const drawSize = Math.max(2, f.baseSize + ripple);    
+    ctxSnow.save();    
+    ctxSnow.globalAlpha = f.alpha;    
+    if (f.baseSize > 26){    
+      const g = ctxSnow.createRadialGradient(f.x, f.y, drawSize*0.2, f.x, f.y, drawSize);    
+      g.addColorStop(0, "rgba(255,255,255,0.95)");    
+      g.addColorStop(0.5, "rgba(255,255,255,0.6)");    
+      g.addColorStop(1, "rgba(255,255,255,0.02)");    
+      ctxSnow.fillStyle = g;    
+      ctxSnow.beginPath();    
+      ctxSnow.arc(f.x, f.y, drawSize, 0, Math.PI*2);    
+      ctxSnow.fill();    
+    } else {    
+      ctxSnow.font = `${Math.round(drawSize)}px "Segoe UI Emoji", "Apple Color Emoji", Arial`;    
+      ctxSnow.textAlign = "center";    
+      ctxSnow.textBaseline = "middle";    
+      ctxSnow.fillStyle = "white";    
+      ctxSnow.fillText("❄︎", f.x, f.y);    
+    }    
+    ctxSnow.restore();    
+  }    
+  requestAnimationFrame(drawSnow);    
+}    
+drawSnow();  
+
+(function() {
+  const textElement = document.getElementById('animatedText');
+  const originalText = textElement.innerText;
+  
+  textElement.innerHTML = '';
+  const chars = [];
+  
+  for (let i = 0; i < originalText.length; i++) {
+    const char = originalText[i];
+    const span = document.createElement('span');
+    span.className = 'char';
+    
+    if (char === ' ') {
+      span.className += ' space';
+      span.innerHTML = '&nbsp;';
+    } else if (char === '\n') {
+      textElement.appendChild(document.createElement('br'));
+      continue;
+    } else {
+      span.textContent = char;
+    }
+    
+    textElement.appendChild(span);
+    chars.push(span);
+  }
+  
+  function animateText() {
+    const windowHeight = window.innerHeight;
+    const scrollTop = window.pageYOffset || document.documentElement.scrollTop;
+    
+    chars.forEach((char) => {
+      const rect = char.getBoundingClientRect();
+      const charTop = rect.top + scrollTop;
+      const charCenter = charTop + rect.height / 2;
+      
+      const viewportCenter = scrollTop + windowHeight * 0.5;
+      const distance = Math.abs(charCenter - viewportCenter);
+      const maxDistance = windowHeight * 0.6;
+      
+      if (distance < maxDistance) {
+        char.classList.add('visible');
+      } else {
+        char.classList.remove('visible');
+      }
+    });
+  }
+  
+  window.addEventListener('scroll', animateText);
+  window.addEventListener('resize', animateText);
+  animateText();
+})();
+</script>
+</body>
+</html>
